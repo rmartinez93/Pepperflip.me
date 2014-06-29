@@ -33,7 +33,8 @@ var app = {
     // The scope of 'this' is the event. In order to call the 'receivedEvent'
     // function, we must explicitly call 'app.receivedEvent(...);'
     onDeviceReady: function() {
-				document.addEventListener("resume", resetGame, false);
+				var watchID = navigator.accelerometer.watchAcceleration(deltaX, null, { frequency: 40 });
+				window.addEventListener( 'resize', onWindowResize, false );
         app.receivedEvent('deviceready');
     },
     // Update DOM on a Received Event
@@ -44,7 +45,5 @@ var app = {
 
         listeningElement.setAttribute('style', 'display:none;');
         receivedElement.setAttribute('style', 'display:block;');
-
-        console.log('Received Event: ' + id);
     }
 };

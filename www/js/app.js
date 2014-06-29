@@ -1,74 +1,88 @@
 var camera, scene, renderer, projector, mouse;
-var pepper, pepperMaterial, empty, pepperTop, shaker;
-var successMessage 	= "You got it!";
+var cloudMaterial, cloudGeometry;
+var coinMaterial, coinGeometry;
+var pepper, shaker;
+var successMessage 	= "You got it! Share your victory!";
 var headMessage 		= "It landed on its head!";
-var failureMessage 	= "Sorry, you didn't make the flip.";
+var failureMessage 	= "Sorry, you didn't land it.";
 var rising = falling = bouncing = false;
 var speed = weight = gravity = deceleration = acceleration = 0;
 var bounceMode = score = 0;
-var objects;
+var shakerPieces = [];
+var coins = [];
 var ready = false;
-var share = '';
+var shareMessage = "";
+var myvar = 0;
 init();
-
-//window.addEventListener( 'resize', onWindowResize, false );
-
-//function onWindowResize() {
-//		camera.aspect = window.innerWidth / window.innerHeight;
-//		camera.updateProjectionMatrix();
-//		renderer.setSize( window.innerWidth, window.innerHeight ); 
-//}
 
 function init() {
 		mouse = new THREE.Vector2();
 		projector = new THREE.Projector();
-		objects = [];
-	
 		renderer = new THREE.WebGLRenderer({ antialias: true });
+		renderer.setClearColor( 0x59c7e8 );
 		renderer.setSize( window.innerWidth, window.innerHeight );
 		document.body.appendChild( renderer.domElement );
 		camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 1000 );
 		camera.position.z = 500;
 		scene = new THREE.Scene();
 
-		addBackground();
+		prepareClouds();
+		addClouds(100);
+		
+		prepareCoins();
+		addCoins(1);
+		
 		addTable();
+		
 		prepareShaker();
 		addShaker();
 	
-		var date = new Date();
-		//if(localStorage.lastPepperflip != date.getDay())
-				ready = true;
-//		else {
-//				$('header').html('You Already Flipped Today!');
-//				$('#userScore').html(localStorage.lastPepperflipScore);
-//		}
+		ready = true;
 		animate();
 }
 
-function addBackground() {
-		var backgroundPlane = new THREE.PlaneGeometry(window.innerWidth*2, window.innerHeight*100);
-		var backgroundTexture = new THREE.ImageUtils.loadTexture('textures/clouds.jpg');
-		backgroundTexture.wrapS = backgroundTexture.wrapT = THREE.RepeatWrapping;
-		backgroundTexture.repeat.set(2,300);
+function prepareClouds() {
+		var backgroundTexture = new THREE.ImageUtils.loadTexture('textures/clouds.png');
 		backgroundTexture.anistropy = renderer.getMaxAnisotropy();
-		var backgroundMaterial = new THREE.MeshBasicMaterial( {map: backgroundTexture } );
-		var background = new THREE.Mesh( backgroundPlane, backgroundMaterial );
-		background.position.z = -200;
-		scene.add(background);
+		backgroundGeometry = new THREE.PlaneGeometry(240, 156);
+		backgroundMaterial = new THREE.MeshBasicMaterial( { map: backgroundTexture, transparent: true } );
+}
+function addClouds(numClouds) {
+		for(var i = 0; i < numClouds; i++) {
+				var background = new THREE.Mesh( backgroundGeometry, backgroundMaterial );
+				background.position.z = -100;
+				background.position.y = 300 + (Math.random() * window.innerHeight * 40);
+				background.position.x = (Math.random() * window.innerWidth)-(window.innerWidth/2);
+				scene.add(background);
+		}
+}
+
+function prepareCoins() {
+		coinGeometry = new THREE.BoxGeometry( 100, 100, 100 );
+		coinMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
+}
+
+function addCoins(numCoins) {
+		for(var i = 0; i < numCoins; i++) {
+				var coin = new THREE.Mesh( coinGeometry, coinMaterial );
+				coin.position.y = 500;
+				coins.push(coin);
+				scene.add(coin);
+		}
 }
 
 function addTable() {
-		var tableCube = new THREE.BoxGeometry( 1800, 100, 500 );
+		var tableGeometry = new THREE.BoxGeometry( 800, 100, 500 );
 		var tableTexture = THREE.ImageUtils.loadTexture( 'textures/wood.jpg' );
 		tableTexture.anisotropy = renderer.getMaxAnisotropy();
 		var tableMaterial = new THREE.MeshBasicMaterial( { map: tableTexture } );
-		var table = new THREE.Mesh( tableCube, tableMaterial );
+		var table = new THREE.Mesh( tableGeometry, tableMaterial );
 		table.position.y = -235;
 		scene.add(table);
 }
 
 function prepareShaker() {
+		shaker = new THREE.Object3D();
 		//create pepper shaker material
 		var pepperTexture = THREE.ImageUtils.loadTexture( 'textures/pepper.jpg' );
 		pepperTexture.wrapS = pepperTexture.wrapT = THREE.RepeatWrapping;
@@ -78,24 +92,28 @@ function prepareShaker() {
 	
 		//create pepper shaker top
 		var topCylinder = new THREE.CylinderGeometry(70, 85, 60, 50, 50, false);
-		var topTexture = THREE.ImageUtils.loadTexture( 'textures/chrome.jpg' );
+		var topTexture 	= THREE.ImageUtils.loadTexture( 'textures/chrome.jpg' );
 		topTexture.anisotropy = renderer.getMaxAnisotropy();
 		var topMaterial = new THREE.MeshBasicMaterial( { map: topTexture } );
-		pepperTop = new THREE.Mesh( topCylinder, topMaterial );
+		var pepperTop 	= new THREE.Mesh( topCylinder, topMaterial );
 		pepperTop.position.y = 150;
 	
-		//create empty space material
-		var emptyCylinder = new THREE.CylinderGeometry(85, 125, 250, 50, 50, false);
-		var emptyMaterial = new THREE.MeshBasicMaterial( { transparent: true, opacity: 0.3 } );
-		empty = new THREE.Mesh( emptyCylinder, emptyMaterial );
+		//create glass material
+		var glassCylinder = new THREE.CylinderGeometry(85, 125, 250, 50, 50, false);
+		var glassMaterial = new THREE.MeshBasicMaterial( { transparent: true, opacity: 0.3 } );
+		var glass 				= new THREE.Mesh( glassCylinder, glassMaterial );
 	
-		objects.push(pepperTop);
-		objects.push(empty);
+		shakerPieces.push(glass);
+		shakerPieces.push(pepperTop);
+	
+		shaker.add(glass);
+		shaker.add(pepperTop);
 }
 
 function addShaker() {
-		if(shaker) scene.remove(shaker);
-		shaker = new THREE.Object3D();
+		if(shaker.children.length === 3) {
+				shaker.remove(pepper);
+		}
 
 		var rand 					= Math.random();
 		var radBottom 		= 120;
@@ -104,33 +122,41 @@ function addShaker() {
 		var height 				= Math.floor(240*rand);
 		var heightSeg 		= 50;
 		weight 						= 0.05*rand;
-		pepperCylinder 		= new THREE.CylinderGeometry(radTop, radBottom, height, radSeg, heightSeg, false);
-		pepper 						= new THREE.Mesh( pepperCylinder, pepperMaterial );
+		var pepperGeometry= new THREE.CylinderGeometry(radTop, radBottom, height, radSeg, heightSeg, false);
+		pepper		 				= new THREE.Mesh( pepperGeometry, pepperMaterial );
 		pepper.position.y = -120 + height/2;
 
 		//combine parts
 		shaker.add(pepper);
-		shaker.add(empty);
-		shaker.add(pepperTop);
 		shaker.rotation.y = 1;
 		scene.add(shaker);
-	
-		objects.push(empty);
 }
             
 function animate() {
 		requestAnimationFrame( animate );
-		if(rising) 				rise();
-		else if(falling) 	fall();
-		else if(bouncing) bounce();
+		deltaY();
 		renderer.render( scene, camera );
 }
 
+function deltaX(acceleration) {
+		if((rising || falling) && abs(shaker.position.x) < window.innerWidth*0.1) {
+				shaker.position.x -= acceleration.x;
+		}
+}
+
+function deltaY() {
+		if(rising) 				rise();
+		else if(falling) 	fall();
+		else if(bouncing) bounce();
+}
+
 function rise() {
+		detectCollision();
 		gravity *= deceleration;
 		shaker.rotation.x += 0.2;
 		shaker.position.y += (speed - gravity)*0.01;
 		camera.position.y += (speed - gravity)*0.01;
+		
 		updateScore(score+=10);
 		if(speed < gravity) {
 				rising 	= false;
@@ -230,31 +256,42 @@ function bounce() {
 		}
 }
 
-$('canvas').attr('id','canvas');
-Hammer(document.getElementById('canvas')).on('drag', function(event) {
+function detectCollision() {
+		var originPoint = shaker.children[1].position.clone();
+		for (var vertexIndex = 0; vertexIndex < shaker.children[1].geometry.vertices.length; vertexIndex++) {		
+				var localVertex = shaker.children[1].geometry.vertices[vertexIndex].clone();
+				var globalVertex = localVertex.applyMatrix4( shaker.children[1].matrix );
+				var directionVector = globalVertex.sub( shaker.children[1].position );
+				var ray = new THREE.Raycaster( originPoint, directionVector.clone().normalize() );
+				var collisionResults = ray.intersectObject( coins );
+				if ( collisionResults.length > 0 && collisionResults[0].distance < directionVector.length() ) 
+					alert('hit!');
+		}
+}
+
+Hammer(document.getElementsByTagName('canvas')[0]).on('drag', function(event) {
 		event.gesture.preventDefault();
 		if(ready) {
-				console.log(event);
-				mouse.x = ( event.gesture.startEvent.center.pageX / window.innerWidth ) * 2 - 1;
-				mouse.y = - ( event.gesture.startEvent.center.pageY / window.innerHeight ) * 2 + 1;
+				mouse.x = 	( event.gesture.startEvent.center.pageX / window.innerWidth 	) * 2 - 1;
+				mouse.y = - ( event.gesture.startEvent.center.pageY / window.innerHeight	) * 2 + 1;
 				var vector = new THREE.Vector3( mouse.x, mouse.y, 0.5 );
 				projector.unprojectVector( vector, camera );
 
 				var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
 
-				var intersects = raycaster.intersectObjects( objects );
+				var intersects = raycaster.intersectObjects( shakerPieces );
 
 				if(intersects.length > 0) {
-						ready = false;
 						if((event.gesture.distance)/event.gesture.deltaTime > 0.05) {
+								ready = false;
 								gravity = 1;
 								deceleration = 1.05+weight;
 								acceleration = 1/deceleration;
-								speed = 3000*((event.gesture.distance)/event.gesture.deltaTime);
+								speed = 1000*((event.gesture.distance)/event.gesture.deltaTime);
 								rising = true;
 								$('header').html('Flipping!');
 						}
-						else popover(false, 'Pull faster!');
+						else $('header').html('Pull faster!')
 				}
 		}
 //})
@@ -268,7 +305,7 @@ Hammer(document.getElementById('canvas')).on('drag', function(event) {
 //
 //		var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
 //
-//		var intersects = raycaster.intersectObjects( objects );
+//		var intersects = raycaster.intersectshakerPieces( shakerPieces );
 //
 //		if ( intersects.length > 0 ) {
 //				intersects[ 0 ].object.material.color.setHex( Math.random() * 0xffffff );
@@ -276,40 +313,53 @@ Hammer(document.getElementById('canvas')).on('drag', function(event) {
 });
 
 function popover(success, message) {
-		bouncing = false;
-		var color = success ? '#2ecc71' : '#c0392b';
-		var share = success ? 'I just made a '+score+' point Pepperflip!' : 'I missed my Pepperflip! Think you can beat me?';
+		bouncing 			= false;
+		shareMessage 	= success ? 'I landed a '+score+' point Pepperflip! Think you can beat me?' : 'I missed my Pepperflip! Think you can land it?';
+		var color 		= success ? '#2ecc71' : '#c0392b';
 		$('#score').css('background', color).html(message).slideDown();
 		$('header').hide();
 		$('button').removeClass('hideImportant');
-		$('button').attr('onclick', 'share('+share+')');
 		localStorage.lastPepperflip = new Date().getDay();
 		localStorage.lastPepperflipScore = score;
+//		if(success) {
+//				navigator.notification.prompt("Post your name to the leaderboards.", postVictory, You've Won!, ["Brag", "Cancel"], "");
+//		}
 }
 
 function share(message) {
-		window.plugins.socialsharing.share(message, null, null, 'http://www.google.com');
+		window.plugins.socialsharing.share(shareMessage, null, null, 'http://www.google.com');
 }
 
-function resetGame(){
-		var date = new Date();
-		if(localStorage.lastPepperflip != date.getDay()) {
-				$('header').show();
-				$('header').html('Flip Shaker to Pepperflip...');
-				$('button').addClass('hideImportant');
-				$('#score').hide(function(){
-						updateScore(0);
-						scene.remove(shaker);
-						bounceMode = speed = 0;
-						gravity = 1;
-						addShaker();
-						ready = true;
-				});
+function postVictory(results) {
+		if(results.buttonIndex == 1) {
+				//POST with name & score
 		}
-		else $('#score').html('You Already Flipped Today!');
+}
+function resetGame(){
+		$('header').show();
+		$('header').html('Flip Shaker to Pepperflip...');
+		$('button').addClass('hideImportant');
+		$('#score').hide(function(){
+				updateScore(0);
+				scene.remove(shaker);
+				bounceMode = speed = 0;
+				gravity = 1;
+				addShaker();
+				ready = true;
+		});
 }
 
 function updateScore(newScore) {
 		score = newScore >= score ? newScore : 0;
 		$('#userScore').html(score);
+}
+
+function abs(num) {
+		return (num>>31 ^ num) - num>>31;
+}
+
+function onWindowResize() {
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
+		renderer.setSize( window.innerWidth, window.innerHeight ); 
 }
