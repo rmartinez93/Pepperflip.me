@@ -1,365 +1,396 @@
-var camera, scene, renderer, projector, mouse;
-var cloudMaterial, cloudGeometry;
-var coinMaterial, coinGeometry;
-var pepper, shaker;
-var successMessage 	= "You got it! Share your victory!";
-var headMessage 		= "It landed on its head!";
-var failureMessage 	= "Sorry, you didn't land it.";
-var rising = falling = bouncing = false;
-var speed = weight = gravity = deceleration = acceleration = 0;
-var bounceMode = score = 0;
-var shakerPieces = [];
-var coins = [];
-var ready = false;
-var shareMessage = "";
-var myvar = 0;
-init();
-
-function init() {
-		mouse = new THREE.Vector2();
-		projector = new THREE.Projector();
-		renderer = new THREE.WebGLRenderer({ antialias: true });
-		renderer.setClearColor( 0x59c7e8 );
-		renderer.setSize( window.innerWidth, window.innerHeight );
-		document.body.appendChild( renderer.domElement );
-		camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 1000 );
-		camera.position.z = 500;
-		scene = new THREE.Scene();
-
-		prepareClouds();
-		addClouds(100);
+function World() {
+		var world = this;
+		var cloudGeometry, cloudMaterial;
+		var coinGeometry, coinMaterial;
+		this.scene;
+		this.camera;
+		this.renderer;
+		this.bonusPoints = 0;
 		
-		prepareCoins();
-		addCoins(1);
+		'use strict';
+
+		Physijs.scripts.worker 	= '/js/physijs_worker.js';
+		Physijs.scripts.ammo 		= 'ammo.js';
+	
+		this.init = function(numClouds) {
+				this.renderer = new THREE.WebGLRenderer({ antialias: true });
+				this.renderer.setSize( window.innerWidth, window.innerHeight );
+				this.renderer.setClearColor( 0x59c7e8 );
+				document.body.appendChild( this.renderer.domElement );
+
+				this.scene = new Physijs.Scene;
+				this.scene.setGravity(new THREE.Vector3( 0, -10, 0 ));
+
+				this.camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 1000 );
+				this.camera.position.z = 500;
+				
+				prepareClouds();
+				prepareCoins();
+		}
 		
-		addTable();
-		
-		prepareShaker();
-		addShaker();
-	
-		ready = true;
-		animate();
-}
-
-function prepareClouds() {
-		var backgroundTexture = new THREE.ImageUtils.loadTexture('textures/clouds.png');
-		backgroundTexture.anistropy = renderer.getMaxAnisotropy();
-		backgroundGeometry = new THREE.PlaneGeometry(240, 156);
-		backgroundMaterial = new THREE.MeshBasicMaterial( { map: backgroundTexture, transparent: true } );
-}
-function addClouds(numClouds) {
-		for(var i = 0; i < numClouds; i++) {
-				var background = new THREE.Mesh( backgroundGeometry, backgroundMaterial );
-				background.position.z = -100;
-				background.position.y = 300 + (Math.random() * window.innerHeight * 40);
-				background.position.x = (Math.random() * window.innerWidth)-(window.innerWidth/2);
-				scene.add(background);
-		}
-}
-
-function prepareCoins() {
-		coinGeometry = new THREE.BoxGeometry( 100, 100, 100 );
-		coinMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
-}
-
-function addCoins(numCoins) {
-		for(var i = 0; i < numCoins; i++) {
-				var coin = new THREE.Mesh( coinGeometry, coinMaterial );
-				coin.position.y = 500;
-				coins.push(coin);
-				scene.add(coin);
-		}
-}
-
-function addTable() {
-		var tableGeometry = new THREE.BoxGeometry( 800, 100, 500 );
-		var tableTexture = THREE.ImageUtils.loadTexture( 'textures/wood.jpg' );
-		tableTexture.anisotropy = renderer.getMaxAnisotropy();
-		var tableMaterial = new THREE.MeshBasicMaterial( { map: tableTexture } );
-		var table = new THREE.Mesh( tableGeometry, tableMaterial );
-		table.position.y = -235;
-		scene.add(table);
-}
-
-function prepareShaker() {
-		shaker = new THREE.Object3D();
-		//create pepper shaker material
-		var pepperTexture = THREE.ImageUtils.loadTexture( 'textures/pepper.jpg' );
-		pepperTexture.wrapS = pepperTexture.wrapT = THREE.RepeatWrapping;
-		pepperTexture.repeat.set(2,2);
-		pepperTexture.anisotropy = renderer.getMaxAnisotropy();
-		pepperMaterial = new THREE.MeshBasicMaterial( { map: pepperTexture } );
-	
-		//create pepper shaker top
-		var topCylinder = new THREE.CylinderGeometry(70, 85, 60, 50, 50, false);
-		var topTexture 	= THREE.ImageUtils.loadTexture( 'textures/chrome.jpg' );
-		topTexture.anisotropy = renderer.getMaxAnisotropy();
-		var topMaterial = new THREE.MeshBasicMaterial( { map: topTexture } );
-		var pepperTop 	= new THREE.Mesh( topCylinder, topMaterial );
-		pepperTop.position.y = 150;
-	
-		//create glass material
-		var glassCylinder = new THREE.CylinderGeometry(85, 125, 250, 50, 50, false);
-		var glassMaterial = new THREE.MeshBasicMaterial( { transparent: true, opacity: 0.3 } );
-		var glass 				= new THREE.Mesh( glassCylinder, glassMaterial );
-	
-		shakerPieces.push(glass);
-		shakerPieces.push(pepperTop);
-	
-		shaker.add(glass);
-		shaker.add(pepperTop);
-}
-
-function addShaker() {
-		if(shaker.children.length === 3) {
-				shaker.remove(pepper);
-		}
-
-		var rand 					= Math.random();
-		var radBottom 		= 120;
-		var radTop 				= radBottom - Math.floor(40*rand);
-		var radSeg				= 50;
-		var height 				= Math.floor(240*rand);
-		var heightSeg 		= 50;
-		weight 						= 0.05*rand;
-		var pepperGeometry= new THREE.CylinderGeometry(radTop, radBottom, height, radSeg, heightSeg, false);
-		pepper		 				= new THREE.Mesh( pepperGeometry, pepperMaterial );
-		pepper.position.y = -120 + height/2;
-
-		//combine parts
-		shaker.add(pepper);
-		shaker.rotation.y = 1;
-		scene.add(shaker);
-}
-            
-function animate() {
-		requestAnimationFrame( animate );
-		deltaY();
-		renderer.render( scene, camera );
-}
-
-function deltaX(acceleration) {
-		if((rising || falling) && abs(shaker.position.x) < window.innerWidth*0.1) {
-				shaker.position.x -= acceleration.x;
-		}
-}
-
-function deltaY() {
-		if(rising) 				rise();
-		else if(falling) 	fall();
-		else if(bouncing) bounce();
-}
-
-function rise() {
-		detectCollision();
-		gravity *= deceleration;
-		shaker.rotation.x += 0.2;
-		shaker.position.y += (speed - gravity)*0.01;
-		camera.position.y += (speed - gravity)*0.01;
-		
-		updateScore(score+=10);
-		if(speed < gravity) {
-				rising 	= false;
-				falling = true;
-		}
-}
-
-function fall() {
-		gravity *= acceleration;
-		shaker.rotation.x += 0.1;
-		shaker.position.y -= (speed-gravity)*0.01; 
-		camera.position.y -= (speed-gravity)*0.01;
-		
-		if(shaker.position.y-50 <= 0) {
-				falling = false;
-				shaker.rotation.x = Math.round(shaker.rotation.x%6.3 * 10) / 10;
-				shaker.position.y = 0;
-				camera.position.y = 0;
-				bouncing = true;
-		}
-}
-
-function bounce() {
-		if(!bounceMode) {
-				if			(shaker.rotation.x >= 0 	&& shaker.rotation.x <  0.4) 	bounceMode = 1;
-				else if (shaker.rotation.x >= 0.4 && shaker.rotation.x <  1.6) 	bounceMode = 2;
-				else if (shaker.rotation.x >= 1.6 && shaker.rotation.x <  2.7) 	bounceMode = 3;
-				else if (shaker.rotation.x >= 2.7 && shaker.rotation.x <  3.1) 	bounceMode = 4;
-				else if (shaker.rotation.x >= 3.1 && shaker.rotation.x <  3.5) 	bounceMode = 5;
-				else if (shaker.rotation.x >= 3.5 && shaker.rotation.x <  4.7)	bounceMode = 6;
-				else if (shaker.rotation.x >= 4.7 && shaker.rotation.x <  5.9) 	bounceMode = 7;
-				else if (shaker.rotation.x >= 5.9 && shaker.rotation.x <= 6.3)	bounceMode = 8;
-		}
-		switch(bounceMode) {
-				case 1:
-						if(shaker.rotation.x > 0)
-								shaker.rotation.x -= 0.1;
-						else {
-								popover(true, successMessage);
-								updateScore(score+1000);
-						}
-						break;
-				case 2:
-						if(shaker.rotation.x < 1.6) 
-								shaker.rotation.x += 0.1;
-						else {
-								shaker.position.y = - 25;
-								popover(false, failureMessage);
-						}
-						break;
-				case 3:
-						if(shaker.rotation.x > 1.6) 
-								shaker.rotation.x -= 0.1;
-						else {
-								shaker.position.y = - 50;
-								popover(false, failureMessage);
-						}
-						break;
-				case 4:
-						if(shaker.rotation.x < 3.1) 
-								shaker.rotation.x += 0.1;
-						else {
-								popover(false, headMessage);
-								updateScore(score-1000);
-						}
-						break;
-				case 5:
-						if(shaker.rotation.x > 3.1) 
-								shaker.rotation.x -= 0.1;
-						else {
-								popover(false, headMessage);
-								updateScore(score-1000);
-						}
-						break;
-				case 6:
-						if(shaker.rotation.x < 4.7) 
-								shaker.rotation.x += 0.1;
-						else {
-								popover(false, failureMessage);
-						}
-						break;
-				case 7:
-						if(shaker.rotation.x > 4.7) 
-								shaker.rotation.x -= 0.1;
-						else {
-								popover(false, failureMessage);
-						}
-						break;
-				case 8:
-						if(shaker.rotation.x < 6.3) 
-								shaker.rotation.x += 0.1;
-						else {
-								popover(true, successMessage);
-								updateScore(score+1000);
-						}
-						break;
-		}
-}
-
-function detectCollision() {
-		var originPoint = shaker.children[1].position.clone();
-		for (var vertexIndex = 0; vertexIndex < shaker.children[1].geometry.vertices.length; vertexIndex++) {		
-				var localVertex = shaker.children[1].geometry.vertices[vertexIndex].clone();
-				var globalVertex = localVertex.applyMatrix4( shaker.children[1].matrix );
-				var directionVector = globalVertex.sub( shaker.children[1].position );
-				var ray = new THREE.Raycaster( originPoint, directionVector.clone().normalize() );
-				var collisionResults = ray.intersectObject( coins );
-				if ( collisionResults.length > 0 && collisionResults[0].distance < directionVector.length() ) 
-					alert('hit!');
-		}
-}
-
-Hammer(document.getElementsByTagName('canvas')[0]).on('drag', function(event) {
-		event.gesture.preventDefault();
-		if(ready) {
-				mouse.x = 	( event.gesture.startEvent.center.pageX / window.innerWidth 	) * 2 - 1;
-				mouse.y = - ( event.gesture.startEvent.center.pageY / window.innerHeight	) * 2 + 1;
-				var vector = new THREE.Vector3( mouse.x, mouse.y, 0.5 );
-				projector.unprojectVector( vector, camera );
-
-				var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
-
-				var intersects = raycaster.intersectObjects( shakerPieces );
-
-				if(intersects.length > 0) {
-						if((event.gesture.distance)/event.gesture.deltaTime > 0.05) {
-								ready = false;
-								gravity = 1;
-								deceleration = 1.05+weight;
-								acceleration = 1/deceleration;
-								speed = 1000*((event.gesture.distance)/event.gesture.deltaTime);
-								rising = true;
-								$('header').html('Flipping!');
-						}
-						else $('header').html('Pull faster!')
+		this.addClouds = function(numClouds) {
+				for(var i = 0; i < numClouds; i++) {
+						var cloud = new THREE.Mesh( cloudGeometry, cloudMaterial );
+						cloud.position.z = -100;
+						cloud.position.y = 300 + (Math.random() * window.innerHeight * 40);
+						cloud.position.x = (Math.random() * window.innerWidth)-(window.innerWidth/2);
+						this.scene.add(cloud);
 				}
 		}
-//})
-//.on('tap', function(event) {
-//		event.gesture.preventDefault();
-//	
-//		mouse.x = ( event.gesture.center.pageX / window.innerWidth ) * 2 - 1;
-//		mouse.y = - ( event.gesture.center.pageY / window.innerHeight ) * 2 + 1;
-//		var vector = new THREE.Vector3( mouse.x, mouse.y, 0.5 );
-//		projector.unprojectVector( vector, camera );
-//
-//		var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
-//
-//		var intersects = raycaster.intersectshakerPieces( shakerPieces );
-//
-//		if ( intersects.length > 0 ) {
-//				intersects[ 0 ].object.material.color.setHex( Math.random() * 0xffffff );
-//		}
-});
-
-function popover(success, message) {
-		bouncing 			= false;
-		shareMessage 	= success ? 'I landed a '+score+' point Pepperflip! Think you can beat me?' : 'I missed my Pepperflip! Think you can land it?';
-		var color 		= success ? '#2ecc71' : '#c0392b';
-		$('#score').css('background', color).html(message).slideDown();
-		$('header').hide();
-		$('button').removeClass('hideImportant');
-		localStorage.lastPepperflip = new Date().getDay();
-		localStorage.lastPepperflipScore = score;
-//		if(success) {
-//				navigator.notification.prompt("Post your name to the leaderboards.", postVictory, You've Won!, ["Brag", "Cancel"], "");
-//		}
-}
-
-function share(message) {
-		window.plugins.socialsharing.share(shareMessage, null, null, 'http://www.google.com');
-}
-
-function postVictory(results) {
-		if(results.buttonIndex == 1) {
-				//POST with name & score
+		
+		var prepareClouds = function() {
+				var cloudTexture = new THREE.ImageUtils.loadTexture('textures/clouds.png');
+				cloudTexture.anistropy = world.renderer.getMaxAnisotropy();
+				cloudGeometry = new THREE.PlaneGeometry(240, 156);
+				cloudMaterial = new THREE.MeshBasicMaterial( { map: cloudTexture, transparent: true } );
+		}
+	
+		this.addCoins = function(numCoins) {
+				for(var i = 0; i < numCoins; i++) {
+						coin = new Physijs.BoxMesh( coinGeometry, coinMaterial, 0 );
+						coin.collisions = 0;
+						coin.position.y = 500;
+						coin.addEventListener( 'collision', function() { 
+							coin.material.color.setHex(0x0aff00);
+							world.bonusPoints += 100;
+							setTimeout(function() {
+									world.scene.remove(coin);
+							}, 100);
+						} );
+						this.scene.add(coin);
+				}
+		}
+	
+		var prepareCoins = function() {
+				coinGeometry = new THREE.CubeGeometry( 100, 100, 100 );
+				coinMaterial = Physijs.createMaterial(
+					new THREE.MeshBasicMaterial( { color: 0xff0000 } ),
+					.6, // medium friction
+					.3 // low restitution
+				);
+		}
+	
+		this.addTable = function() {
+				var tableGeometry = new THREE.CubeGeometry( 800, 100, 500 );
+				var tableTexture = THREE.ImageUtils.loadTexture( 'textures/wood.jpg' );
+				tableTexture.anisotropy = this.renderer.getMaxAnisotropy();
+				var tableMaterial = Physijs.createMaterial(
+					new THREE.MeshBasicMaterial( { map: tableTexture } ),
+					1, // high friction
+					0 // low restitution
+				);
+				var table = new Physijs.BoxMesh(tableGeometry, tableMaterial, 0);
+				table.position.y = -235;
+				this.scene.add(table);
+		}
+		
+		this.addShaker = function(bottle) {
+				this.scene.add(bottle);
+		}
+		
+		this.onWindowResize = function() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize(window.innerWidth, window.innerHeight); 
 		}
 }
-function resetGame(){
-		$('header').show();
-		$('header').html('Flip Shaker to Pepperflip...');
-		$('button').addClass('hideImportant');
-		$('#score').hide(function(){
-				updateScore(0);
-				scene.remove(shaker);
-				bounceMode = speed = 0;
-				gravity = 1;
-				addShaker();
+
+function Shaker(scale) {
+		var pepperMaterial;
+		this.scale = scale;
+		this.bottle;
+		this.weight;
+		
+		'use strict';
+
+		Physijs.scripts.worker 	= '/js/physijs_worker.js';
+		Physijs.scripts.ammo 		= 'ammo.js';
+	
+		this.init = function(renderer) {
+				//create pepper shaker material
+				var pepperTexture = THREE.ImageUtils.loadTexture( 'textures/pepper.jpg' );
+				pepperTexture.wrapS = pepperTexture.wrapT = THREE.RepeatWrapping;
+				pepperTexture.repeat.set(2,2);
+				pepperTexture.anisotropy = renderer.getMaxAnisotropy();
+				pepperMaterial = new THREE.MeshBasicMaterial( { map: pepperTexture } );
+
+				//create pepper shaker top
+				var topCylinder = new THREE.CylinderGeometry(70*scale, 85*scale, 60*scale, 50, 50, false);
+				var topTexture 	= THREE.ImageUtils.loadTexture( 'textures/chrome.jpg' );
+				topTexture.anisotropy = renderer.getMaxAnisotropy();
+				var topMaterial = Physijs.createMaterial(
+					new THREE.MeshBasicMaterial( { map: topTexture } ),
+					0, // high friction
+					0 // low restitution
+				);
+				var pepperTop 	= new THREE.Mesh( topCylinder, topMaterial );
+				pepperTop.position.y = 150*scale;
+
+				//create glass material
+				var glassCylinder = new THREE.CylinderGeometry(85*scale, 125*scale, 250*scale, 50, 50, false);
+				var glassMaterial = Physijs.createMaterial(
+					new THREE.MeshBasicMaterial( { transparent: true, opacity: 0.3 } ),
+					0, // high friction
+					0 // low restitution
+				);
+				this.bottle = new Physijs.CylinderMesh( glassCylinder, glassMaterial, 20 );
+				this.bottle.add(pepperTop);
+		}
+		
+		this.refill = function() {
+				if(this.bottle.children.length) this.bottle.remove(this.bottle.children[1]);
+				var rand 					= Math.random();
+				var radBottom 		= 120*scale;
+				var radTop 				= radBottom - Math.floor(40*scale*rand);
+				var radSeg				= 50;
+				var height 				= Math.floor(240*scale*rand);
+				var heightSeg 		= 50;
+				this.weight 			= 0.05*rand;
+				var pepperGeometry= new THREE.CylinderGeometry(radTop, radBottom, height, radSeg, heightSeg, false);
+				var pepper		 		= new THREE.Mesh( pepperGeometry, pepperMaterial );
+				pepper.position.y = -120*scale + height/2;
+
+				//combine parts
+				this.bottle.add(pepper);
+				this.bottle.rotation.y = 1;
+				this.bottle.position.y = -90;
+		}
+}
+
+function Game() {
+		this.game = this;
+		this.world;
+		this.shaker;
+		var bottle;
+		var successMessage 	= "You got it! Share your victory!";
+		var headMessage 		= "It landed on its head!";
+		var failureMessage 	= "Sorry, you didn't land it.";
+		var rising 	= false, falling = false, bouncing = false;
+		var speed = 0, weight = 0, accel = 0, decel = 0;
+		var bounceMode = 0, score = 0;
+		var coins = [];
+		var ready = false;
+		var shareMessage = "";
+		var scale = 0.75;
+		var speedCap = 100;
+	
+		this.init = function() {
+				this.world = new World();
+				this.world.init();
+				this.world.addTable();
+				this.world.addClouds(100);
+				this.world.addCoins(1);
+				this.shaker = new Shaker(0.75);
+				this.shaker.init(this.world.renderer);
+				this.shaker.refill();
+				bottle = this.shaker.bottle;
+				this.world.addShaker(bottle);
+				this.animate();
 				ready = true;
-		});
+				
+				Hammer(document.getElementsByTagName('canvas')[0]).on('drag', function(event) {
+						event.gesture.preventDefault();
+						if(ready) {
+								if((event.gesture.distance)/event.gesture.deltaTime > 0.3) {
+										ready = false;
+										accel = 1.01+weight;
+										decel = 1/accel;
+										speed = 50*((event.gesture.distance)/event.gesture.deltaTime);
+										if(speed > speedCap) speed = speedCap;
+										$('header').slideUp();
+										rising = true;
+								}
+								else $('header').html('Pull faster!');
+						}
+				});
+		}
+		
+		this.animate = function() {
+				game.world.scene.simulate();
+				deltaY();
+    		bottle.__dirtyPosition = true;
+				requestAnimationFrame( game.animate );
+				game.world.renderer.render( game.world.scene, game.world.camera );
+		}
+		
+		var deltaX = function(acceleration) {
+				if((rising || falling) && abs(bottle.position.x) < window.innerWidth*0.1) {
+						bottle.position.x -= acceleration.x;
+				}
+		}
+		
+		var deltaY = function() {
+				if			(rising) 		rise();
+				else if	(falling) 	fall();
+				else if	(bouncing) 	bounce();
+		}
+		
+		var rise = function() {
+				if(speed < 10) {
+						rising 	= false;
+						falling = true;
+				} else {
+						bottle.rotation.x += 0.1;
+						speed 						*= decel;
+						bottle.position.y += speed;
+						game.world.camera.position.y += speed;
+					
+						updateScore(score+10);
+				}
+		}
+		
+		var fall = function() {
+				if(bottle.position.y <= -60) {
+						falling = false;
+						bottle.rotation.x = Math.round(bottle.rotation.x%6.3 * 10) / 10;
+						bottle.position.y = -60;
+						game.world.camera.position.y = 0;
+						bouncing = true;
+				} else {		
+						bottle.rotation.x += 0.1;
+						speed 						*= accel;
+						bottle.position.y -= speed; 
+						game.world.camera.position.y -= speed;
+				}
+		}
+		
+		var bounce = function() {
+				if(!bounceMode) {
+						if			(bottle.rotation.x >= 0 	&& bottle.rotation.x <  0.4) 	bounceMode = 1;
+						else if (bottle.rotation.x >= 0.4 && bottle.rotation.x <  1.6) 	bounceMode = 2;
+						else if (bottle.rotation.x >= 1.6 && bottle.rotation.x <  2.7) 	bounceMode = 3;
+						else if (bottle.rotation.x >= 2.7 && bottle.rotation.x <  3.1) 	bounceMode = 4;
+						else if (bottle.rotation.x >= 3.1 && bottle.rotation.x <  3.5) 	bounceMode = 5;
+						else if (bottle.rotation.x >= 3.5 && bottle.rotation.x <  4.7)	bounceMode = 6;
+						else if (bottle.rotation.x >= 4.7 && bottle.rotation.x <  5.9) 	bounceMode = 7;
+						else if (bottle.rotation.x >= 5.9 && bottle.rotation.x <= 6.3)	bounceMode = 8;
+				}
+				switch(bounceMode) {
+						case 1:
+								if(bottle.rotation.x > 0)
+										bottle.rotation.x -= 0.1;
+								else {
+										popover(true, successMessage);
+										updateScore(score+1000);
+								}
+								break;
+						case 2:
+								if(bottle.rotation.x < 1.6) 
+										bottle.rotation.x += 0.1;
+								else {
+										bottle.position.y -= 25;
+										popover(false, failureMessage);
+								}
+								break;
+						case 3:
+								if(bottle.rotation.x > 1.6) 
+										bottle.rotation.x -= 0.1;
+								else {
+										bottle.position.y -= 50;
+										popover(false, failureMessage);
+								}
+								break;
+						case 4:
+								if(bottle.rotation.x < 3.1) 
+										bottle.rotation.x += 0.1;
+								else {
+										popover(false, headMessage);
+										updateScore(score-1000);
+								}
+								break;
+						case 5:
+								if(bottle.rotation.x > 3.1) 
+										bottle.rotation.x -= 0.1;
+								else {
+										popover(false, headMessage);
+										updateScore(score-1000);
+								}
+								break;
+						case 6:
+								if(bottle.rotation.x < 4.7) 
+										bottle.rotation.x += 0.1;
+								else {
+										popover(false, failureMessage);
+								}
+								break;
+						case 7:
+								if(bottle.rotation.x > 4.7) 
+										bottle.rotation.x -= 0.1;
+								else {
+										popover(false, failureMessage);
+								}
+								break;
+						case 8:
+								if(bottle.rotation.x < 6.3) 
+										bottle.rotation.x += 0.1;
+								else {
+										popover(true, successMessage);
+										updateScore(score+1000);
+								}
+								break;
+				}
+		}
+		
+		this.share = function(message) {
+				window.plugins.socialsharing.share(shareMessage, null, null, 'http://rmartinez.co/pepperflip');
+		}
+		
+		this.resetGame = function(){
+				$('header').slideDown();
+				$('header').html('Flip Shaker to Pepperflip...');
+				$('button').addClass('hideImportant');
+				$('#score').hide(function(){
+						bounceMode = speed = 0;
+						updateScore(0);
+						bottle.rotation.x = 0;
+						bottle.position.y = -90;
+						game.shaker.refill();
+						ready = true;
+				});
+		}
+		
+		var popover = function(success, message) {
+				bouncing 			= false;
+				shareMessage 	= success ? 'I landed a '+score+' point Pepperflip! Think you can beat me?' : 'I missed my Pepperflip! Think you can land it?';
+				var color 		= success ? '#2ecc71' : '#c0392b';
+				updateScore(game.world.bonusPoints, true);
+				$('#score').css('background', color).html(message).slideDown();
+				$('button').removeClass('hideImportant');
+				localStorage.lastPepperflip = new Date().getDay();
+				localStorage.lastPepperflipScore = score;
+		//		if(success) {
+		//				navigator.notification.prompt("Post your name to the leaderboards.", postVictory, You've Won!, ["Brag", "Cancel"], "");
+		//		}
+		}
+		
+		var postVictory = function(results) {
+				if(results.buttonIndex == 1) {
+						//POST with name & score
+				}
+		}
+		
+		var updateScore = function(newScore, special) {
+				if(special) {
+						$('#title').html('BONUS').css('color', '#F00');
+						$('#num').html('+'+newScore);
+						setTimeout(function(){
+								score = newScore + score;
+								$('#title').html('FINAL').css('color', '#fff');
+								$('#num').html(score);
+						}, 3200);
+				}
+				else {
+					score = newScore >= score ? newScore : 0;
+					$('#num').html(score);
+				}
+		}
+		
+		var abs = function(num) {
+				return (num>>31 ^ num) - num>>31;
+		}
 }
 
-function updateScore(newScore) {
-		score = newScore >= score ? newScore : 0;
-		$('#userScore').html(score);
-}
 
-function abs(num) {
-		return (num>>31 ^ num) - num>>31;
-}
-
-function onWindowResize() {
-		camera.aspect = window.innerWidth / window.innerHeight;
-		camera.updateProjectionMatrix();
-		renderer.setSize( window.innerWidth, window.innerHeight ); 
-}
+var game = new Game();
+		game.init();
+//window.addEventListener( 'resize', game.world.onWindowResize, false );
