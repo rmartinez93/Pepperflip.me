@@ -1,21 +1,20 @@
 function World() {
 		var world = this;
 		var cloudGeometry, cloudMaterial;
-		var coinGeometry, coinMaterial;
 		this.scene;
 		this.camera;
 		this.renderer;
 		this.bonusPoints = 0;
-		
+		this.allCoins = [];
+	
 		'use strict';
 
-		Physijs.scripts.worker 	= '/js/physijs_worker.js';
+		Physijs.scripts.worker 	= 'js/physijs_worker.js';
 		Physijs.scripts.ammo 		= 'ammo.js';
 	
 		this.init = function(numClouds) {
 				this.renderer = new THREE.WebGLRenderer({ antialias: true });
 				this.renderer.setSize( window.innerWidth, window.innerHeight );
-				this.renderer.setClearColor( 0x59c7e8 );
 				document.body.appendChild( this.renderer.domElement );
 
 				this.scene = new Physijs.Scene;
@@ -25,7 +24,6 @@ function World() {
 				this.camera.position.z = 500;
 				
 				prepareClouds();
-				prepareCoins();
 		}
 		
 		this.addClouds = function(numClouds) {
@@ -46,28 +44,27 @@ function World() {
 		}
 	
 		this.addCoins = function(numCoins) {
-				for(var i = 0; i < numCoins; i++) {
-						coin = new Physijs.BoxMesh( coinGeometry, coinMaterial, 0 );
-						coin.collisions = 0;
-						coin.position.y = 500;
-						coin.addEventListener( 'collision', function() { 
-							coin.material.color.setHex(0x0aff00);
-							world.bonusPoints += 100;
-							setTimeout(function() {
-									world.scene.remove(coin);
-							}, 100);
-						} );
-						this.scene.add(coin);
+				for(coin in this.allCoins) {
+						this.scene.remove(this.allCoins[coin]);
 				}
-		}
-	
-		var prepareCoins = function() {
-				coinGeometry = new THREE.CubeGeometry( 100, 100, 100 );
-				coinMaterial = Physijs.createMaterial(
-					new THREE.MeshBasicMaterial( { color: 0xff0000 } ),
-					.6, // medium friction
-					.3 // low restitution
-				);
+				this.allCoins = [];
+				
+				this.numCoins = numCoins;
+				for(var i = 0; i < numCoins; i++) {
+						this.allCoins.push(new Physijs.BoxMesh( 
+								new THREE.CubeGeometry( 50, 50, 10 ), 
+								Physijs.createMaterial(new THREE.MeshBasicMaterial( { color: 0xff0000 } ), 0, 0), 
+								0 
+						));
+						this.allCoins[i].collisions = 0;
+						this.allCoins[i].position.y = 300 + (Math.random() * window.innerHeight * 40);
+						this.allCoins[i].position.x = (Math.random() * window.innerWidth)-(window.innerWidth/2);
+						this.allCoins[i].addEventListener( 'collision', function() { 
+								world.bonusPoints += 100;
+								world.scene.remove(this);
+						} );
+						this.scene.add(this.allCoins[i]);
+				}
 		}
 	
 		this.addTable = function() {
@@ -76,8 +73,8 @@ function World() {
 				tableTexture.anisotropy = this.renderer.getMaxAnisotropy();
 				var tableMaterial = Physijs.createMaterial(
 					new THREE.MeshBasicMaterial( { map: tableTexture } ),
-					1, // high friction
-					0 // low restitution
+					1,
+					0
 				);
 				var table = new Physijs.BoxMesh(tableGeometry, tableMaterial, 0);
 				table.position.y = -235;
@@ -100,12 +97,12 @@ function Shaker(scale) {
 		this.scale = scale;
 		this.bottle;
 		this.weight;
-		
+	
 		'use strict';
 
-		Physijs.scripts.worker 	= '/js/physijs_worker.js';
+		Physijs.scripts.worker 	= 'js/physijs_worker.js';
 		Physijs.scripts.ammo 		= 'ammo.js';
-	
+		
 		this.init = function(renderer) {
 				//create pepper shaker material
 				var pepperTexture = THREE.ImageUtils.loadTexture( 'textures/pepper.jpg' );
@@ -120,8 +117,8 @@ function Shaker(scale) {
 				topTexture.anisotropy = renderer.getMaxAnisotropy();
 				var topMaterial = Physijs.createMaterial(
 					new THREE.MeshBasicMaterial( { map: topTexture } ),
-					0, // high friction
-					0 // low restitution
+					0,
+					0 
 				);
 				var pepperTop 	= new THREE.Mesh( topCylinder, topMaterial );
 				pepperTop.position.y = 150*scale;
@@ -130,8 +127,8 @@ function Shaker(scale) {
 				var glassCylinder = new THREE.CylinderGeometry(85*scale, 125*scale, 250*scale, 50, 50, false);
 				var glassMaterial = Physijs.createMaterial(
 					new THREE.MeshBasicMaterial( { transparent: true, opacity: 0.3 } ),
-					0, // high friction
-					0 // low restitution
+					0,
+					0
 				);
 				this.bottle = new Physijs.CylinderMesh( glassCylinder, glassMaterial, 20 );
 				this.bottle.add(pepperTop);
@@ -179,7 +176,7 @@ function Game() {
 				this.world.init();
 				this.world.addTable();
 				this.world.addClouds(100);
-				this.world.addCoins(1);
+				this.world.addCoins(20);
 				this.shaker = new Shaker(0.75);
 				this.shaker.init(this.world.renderer);
 				this.shaker.refill();
@@ -199,8 +196,7 @@ function Game() {
 										if(speed > speedCap) speed = speedCap;
 										$('header').slideUp();
 										rising = true;
-								}
-								else $('header').html('Pull faster!');
+								} else $('header').html('Pull faster!');
 						}
 				});
 		}
@@ -213,7 +209,7 @@ function Game() {
 				game.world.renderer.render( game.world.scene, game.world.camera );
 		}
 		
-		var deltaX = function(acceleration) {
+		this.deltaX = function(acceleration) {
 				if((rising || falling) && abs(bottle.position.x) < window.innerWidth*0.1) {
 						bottle.position.x -= acceleration.x;
 				}
@@ -340,11 +336,15 @@ function Game() {
 				$('header').html('Flip Shaker to Pepperflip...');
 				$('button').addClass('hideImportant');
 				$('#score').hide(function(){
-						bounceMode = speed = 0;
-						updateScore(0);
-						bottle.rotation.x = 0;
-						bottle.position.y = -90;
+						$('#title').html('SCORE').css('color', '#fff');
 						game.shaker.refill();
+						game.world.addCoins(20);
+						game.world.bonusPoints = 0;
+						updateScore(0);
+						bounceMode = speed = 0;
+						bottle.rotation.x = 0;
+						bottle.position.x = 0;
+						bottle.position.y = -90;
 						ready = true;
 				});
 		}
@@ -353,7 +353,8 @@ function Game() {
 				bouncing 			= false;
 				shareMessage 	= success ? 'I landed a '+score+' point Pepperflip! Think you can beat me?' : 'I missed my Pepperflip! Think you can land it?';
 				var color 		= success ? '#2ecc71' : '#c0392b';
-				updateScore(game.world.bonusPoints, true);
+				updateScore(score+game.world.bonusPoints);
+				$('#title').html('FINAL').css('color', '#3498db');
 				$('#score').css('background', color).html(message).slideDown();
 				$('button').removeClass('hideImportant');
 				localStorage.lastPepperflip = new Date().getDay();
@@ -370,26 +371,14 @@ function Game() {
 		}
 		
 		var updateScore = function(newScore, special) {
-				if(special) {
-						$('#title').html('BONUS').css('color', '#F00');
-						$('#num').html('+'+newScore);
-						setTimeout(function(){
-								score = newScore + score;
-								$('#title').html('FINAL').css('color', '#fff');
-								$('#num').html(score);
-						}, 3200);
-				}
-				else {
-					score = newScore >= score ? newScore : 0;
-					$('#num').html(score);
-				}
+				score = newScore >= score ? newScore : 0;
+				$('#num').html(score);
 		}
 		
 		var abs = function(num) {
 				return (num>>31 ^ num) - num>>31;
 		}
 }
-
 
 var game = new Game();
 		game.init();

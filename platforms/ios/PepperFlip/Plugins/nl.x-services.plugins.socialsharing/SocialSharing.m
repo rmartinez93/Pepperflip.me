@@ -155,7 +155,7 @@
 
 - (void)shareViaInternal:(CDVInvokedUrlCommand*)command
                     type:(NSString *) type {
-    
+    NSLog(@"here we go...");
     NSString *message   = [command.arguments objectAtIndex:0];
     // subject is not supported by the SLComposeViewController
     NSArray  *filenames = [command.arguments objectAtIndex:2];

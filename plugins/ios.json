@@ -15,6 +15,10 @@
                         {
                             "xml": "<feature name=\"SocialSharing\"><param name=\"ios-package\" value=\"SocialSharing\" /></feature>",
                             "count": 1
+                        },
+                        {
+                            "xml": "<feature name=\"Accelerometer\"><param name=\"ios-package\" value=\"CDVAccelerometer\" /></feature>",
+                            "count": 1
                         }
                     ]
                 }
@@ -32,6 +36,12 @@
                             "xml": "true",
                             "count": 1
                         }
+                    ],
+                    "CoreMotion.framework": [
+                        {
+                            "xml": "false",
+                            "count": 1
+                        }
                     ]
                 }
             }
@@ -42,6 +52,9 @@
             "PACKAGE_NAME": "com.pepperflip.app"
         },
         "nl.x-services.plugins.socialsharing": {
+            "PACKAGE_NAME": "com.pepperflip.app"
+        },
+        "org.apache.cordova.device-motion": {
             "PACKAGE_NAME": "com.pepperflip.app"
         }
     },

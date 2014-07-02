@@ -8,5 +8,8 @@
         Apache Cordova Team
     </author>
     <content src="index.html" />
+    <gap:plugin name="nl.x-services.plugins.socialsharing" />
+    <preference name="DisallowOverscroll" value="true" />
+    <preference name="BackgroundColor" value="0xff000000"/>
     <access origin="*" />
 </widget>
