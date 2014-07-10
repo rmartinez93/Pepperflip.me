@@ -33,12 +33,16 @@ var app = {
     // The scope of 'this' is the event. In order to call the 'receivedEvent'
     // function, we must explicitly call 'app.receivedEvent(...);'
     onDeviceReady: function() {
-				if (window.cordova.logger) window.cordova.logger.__onDeviceReady();
+				if (window.cordova.logger) 
+						window.cordova.logger.__onDeviceReady();
 				
 				game = new Game();
 				game.init();
-				if(navigator.accelerometer) navigator.accelerometer.watchAcceleration(game.deltaX, function(){ alert("BOOM"); }, { frequency: 40 });
-				window.addEventListener( 'resize', onWindowResize, false );
+				
+				if(navigator.accelerometer) 
+						navigator.accelerometer.watchAcceleration(game.deltaX, null, { frequency: 40 });
+			
+				window.addEventListener( 'resize', game.world.onWindowResize, false );
         app.receivedEvent('deviceready');
     },
     // Update DOM on a Received Event

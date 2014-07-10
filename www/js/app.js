@@ -47,7 +47,7 @@ function World() {
 				for(var i = 0; i < numCoins; i++) {
 						this.allCoins.push(new THREE.Mesh( 
 								new THREE.SphereGeometry( 30, 30, 30 ), 
-								new THREE.MeshBasicMaterial( { color: 0xff0000 } )
+								new THREE.MeshBasicMaterial( { color: 0xe5c100 } )
 						));
 						this.allCoins[i].collisions = 0;
 						this.allCoins[i].position.y = 300 + (Math.random() * window.innerHeight * 40);
@@ -146,7 +146,7 @@ function Game() {
 		var shareMessage = "";
 		var scale = 0.75;
 		var speedCap = 100;
-		var watchID;
+		var pointSound = new Audio('audio/point.mp3');
 	
 		this.init = function() {
 				this.world = new World();
@@ -166,11 +166,11 @@ function Game() {
 						event.gesture.preventDefault();
 						if(ready) {
 								if((event.gesture.distance)/event.gesture.deltaTime > 0.3) {
-//										watchID = navigator.accelerometer.watchAcceleration(this.deltaX, null, { frequency: 40 });
 										ready = false;
-										accel = 1.01+weight;
+										var factor =  event.gesture.deltaTime/event.gesture.distance < 0.03 ? 0.03 : event.gesture.deltaTime/event.gesture.distance;
+										accel = 1+factor/20+weight;
 										decel = 1/accel;
-										speed = 50*((event.gesture.distance)/event.gesture.deltaTime);
+										speed = 50;
 										if(speed > speedCap) speed = speedCap;
 										$('header').slideUp();
 										rising = true;
@@ -193,20 +193,30 @@ function Game() {
 				if(rising || falling) {
 						for(var i = 0; i < game.world.allCoins.length; i++) {
 								var coin  = game.world.allCoins[i];
-								var distX = abs(coin.position.x - shakerX);
-								var distY = abs(coin.position.y - shakerY);
-								var distZ = abs(coin.position.z - shakerZ);
-								var dist  = Math.sqrt(distX*distX + distY*distY + distZ*distZ);
-								if(dist < 100) {
-										game.world.removeCoin(i);
-								};
+								if(coin != null) {
+										var distX = abs(coin.position.x - shakerX);
+										var distY = abs(coin.position.y - shakerY);
+										var distZ = abs(coin.position.z - shakerZ);
+										var dist  = Math.sqrt(distX*distX + distY*distY + distZ*distZ);
+										if(dist < 100) {
+												pointSound.pause();
+												game.world.removeCoin(i);
+												game.world.allCoins[i] = null;
+												pointSound.play();
+										};
+								}
 						}
 				}
 		}
 		
 		this.deltaX = function(acceleration) {
-				if((rising || falling) && abs(bottle.position.x) < window.innerWidth*0.5) {
-						bottle.position.x -= acceleration.x;
+				var currentPosition = bottle.position.x;
+				if(rising || falling) {
+						if(abs(currentPosition) <= (window.innerWidth*0.5) - 90) {
+								bottle.position.x = currentPosition - (acceleration.x*0.75);
+						} 
+						else if(currentPosition > 0) bottle.position.x =  (window.innerWidth*0.5) - 90;
+						else if(currentPosition < 0) bottle.position.x = -(window.innerWidth*0.5) + 90;
 				}
 		}
 		
@@ -225,7 +235,6 @@ function Game() {
 						speed 						*= decel;
 						bottle.position.y += speed;
 						game.world.camera.position.y += speed;
-					
 						updateScore(score+10);
 				}
 		}
@@ -348,7 +357,6 @@ function Game() {
 				bouncing 			= false;
 				shareMessage 	= success ? 'I landed a '+score+' point Pepperflip! Think you can beat me?' : 'I missed my Pepperflip! Think you can land it?';
 				var color 		= success ? '#2ecc71' : '#c0392b';
-//				navigator.accelerometer.clearWatch(watchID);
 				updateScore(score+game.world.bonusPoints);
 				$('#title').html('FINAL').css('color', '#3498db');
 				$('#score').css('background', color).html(message).slideDown();
@@ -375,5 +383,3 @@ function Game() {
 				return (num>>31 ^ num) - (num>>31);
 		}
 }
-
-//window.addEventListener( 'resize', game.world.onWindowResize, false );

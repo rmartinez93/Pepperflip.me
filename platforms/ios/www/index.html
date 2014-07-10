@@ -23,7 +23,12 @@
 			<script src="js/index.js"></script>
 			<script>
 					function onBodyLoad() {
-							app.initialize();						
+							if(window.cordova)
+									app.initialize();
+							else {
+									game = new Game();
+									game.init();
+							}
 					}
 			</script>
 	</body>
