@@ -5,11 +5,6 @@
 			<meta charset="utf-8">
 			<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/>
 			<link rel="stylesheet" type="text/css" href="css/pepper.css">
-			<script>
-					function onBodyLoad() {
-							app.initialize();
-					}
-			</script>
 	</head>
 	<body onload=onBodyLoad()>
 			<div id=userScore><p id=title>SCORE</p><p id=num>0</p></div>
@@ -23,9 +18,13 @@
 			<script src="js/jquery.min.js"></script>
 			<script src="js/three.min.js"></script>
 			<script src="js/hammer.min.js"></script>
-			<script src="js/physi.js"></script>
 			<script src="js/app.js"></script>
 			<script src="cordova.js"></script>
 			<script src="js/index.js"></script>
+			<script>
+					function onBodyLoad() {
+							app.initialize();						
+					}
+			</script>
 	</body>
 </html>

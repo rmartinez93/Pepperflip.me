@@ -25,9 +25,6 @@
     <feature name="SocialSharing">
         <param name="ios-package" value="SocialSharing" />
     </feature>
-    <feature name="Accelerometer">
-        <param name="ios-package" value="CDVAccelerometer" />
-    </feature>
     <name>PepperFlip</name>
     <description>
         A sample Apache Cordova application that responds to the deviceready event.
@@ -40,4 +37,7 @@
     <preference name="DisallowOverscroll" value="true" />
     <preference name="BackgroundColor" value="0xff000000" />
     <access origin="*" />
+    <feature name="Accelerometer">
+        <param name="ios-package" value="CDVAccelerometer" />
+    </feature>
 </widget>

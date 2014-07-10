@@ -6,19 +6,13 @@ function World() {
 		this.renderer;
 		this.bonusPoints = 0;
 		this.allCoins = [];
-	
-		'use strict';
 
-		Physijs.scripts.worker 	= 'js/physijs_worker.js';
-		Physijs.scripts.ammo 		= 'ammo.js';
-	
 		this.init = function(numClouds) {
 				this.renderer = new THREE.WebGLRenderer({ antialias: true });
 				this.renderer.setSize( window.innerWidth, window.innerHeight );
 				document.body.appendChild( this.renderer.domElement );
 
-				this.scene = new Physijs.Scene;
-				this.scene.setGravity(new THREE.Vector3( 0, -10, 0 ));
+				this.scene = new THREE.Scene;
 
 				this.camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 1000 );
 				this.camera.position.z = 500;
@@ -51,32 +45,28 @@ function World() {
 				
 				this.numCoins = numCoins;
 				for(var i = 0; i < numCoins; i++) {
-						this.allCoins.push(new Physijs.BoxMesh( 
-								new THREE.CubeGeometry( 50, 50, 10 ), 
-								Physijs.createMaterial(new THREE.MeshBasicMaterial( { color: 0xff0000 } ), 0, 0), 
-								0 
+						this.allCoins.push(new THREE.Mesh( 
+								new THREE.SphereGeometry( 30, 30, 30 ), 
+								new THREE.MeshBasicMaterial( { color: 0xff0000 } )
 						));
 						this.allCoins[i].collisions = 0;
 						this.allCoins[i].position.y = 300 + (Math.random() * window.innerHeight * 40);
 						this.allCoins[i].position.x = (Math.random() * window.innerWidth)-(window.innerWidth/2);
-						this.allCoins[i].addEventListener( 'collision', function() { 
-								world.bonusPoints += 100;
-								world.scene.remove(this);
-						} );
 						this.scene.add(this.allCoins[i]);
 				}
+		}
+		
+		this.removeCoin = function(coin_id) {
+				this.bonusPoints += 100;
+				this.scene.remove(this.allCoins[coin_id]);
 		}
 	
 		this.addTable = function() {
 				var tableGeometry = new THREE.CubeGeometry( 800, 100, 500 );
 				var tableTexture = THREE.ImageUtils.loadTexture( 'textures/wood.jpg' );
 				tableTexture.anisotropy = this.renderer.getMaxAnisotropy();
-				var tableMaterial = Physijs.createMaterial(
-					new THREE.MeshBasicMaterial( { map: tableTexture } ),
-					1,
-					0
-				);
-				var table = new Physijs.BoxMesh(tableGeometry, tableMaterial, 0);
+				var tableMaterial = new THREE.MeshBasicMaterial( { map: tableTexture } );
+				var table = new THREE.Mesh(tableGeometry, tableMaterial);
 				table.position.y = -235;
 				this.scene.add(table);
 		}
@@ -97,11 +87,6 @@ function Shaker(scale) {
 		this.scale = scale;
 		this.bottle;
 		this.weight;
-	
-		'use strict';
-
-		Physijs.scripts.worker 	= 'js/physijs_worker.js';
-		Physijs.scripts.ammo 		= 'ammo.js';
 		
 		this.init = function(renderer) {
 				//create pepper shaker material
@@ -115,22 +100,14 @@ function Shaker(scale) {
 				var topCylinder = new THREE.CylinderGeometry(70*scale, 85*scale, 60*scale, 50, 50, false);
 				var topTexture 	= THREE.ImageUtils.loadTexture( 'textures/chrome.jpg' );
 				topTexture.anisotropy = renderer.getMaxAnisotropy();
-				var topMaterial = Physijs.createMaterial(
-					new THREE.MeshBasicMaterial( { map: topTexture } ),
-					0,
-					0 
-				);
+				var topMaterial = new THREE.MeshBasicMaterial( { map: topTexture } );
 				var pepperTop 	= new THREE.Mesh( topCylinder, topMaterial );
 				pepperTop.position.y = 150*scale;
 
 				//create glass material
 				var glassCylinder = new THREE.CylinderGeometry(85*scale, 125*scale, 250*scale, 50, 50, false);
-				var glassMaterial = Physijs.createMaterial(
-					new THREE.MeshBasicMaterial( { transparent: true, opacity: 0.3 } ),
-					0,
-					0
-				);
-				this.bottle = new Physijs.CylinderMesh( glassCylinder, glassMaterial, 20 );
+				var glassMaterial = new THREE.MeshBasicMaterial( { transparent: true, opacity: 0.3 } );
+				this.bottle = new THREE.Mesh( glassCylinder, glassMaterial );
 				this.bottle.add(pepperTop);
 		}
 		
@@ -165,11 +142,11 @@ function Game() {
 		var rising 	= false, falling = false, bouncing = false;
 		var speed = 0, weight = 0, accel = 0, decel = 0;
 		var bounceMode = 0, score = 0;
-		var coins = [];
 		var ready = false;
 		var shareMessage = "";
 		var scale = 0.75;
 		var speedCap = 100;
+		var watchID;
 	
 		this.init = function() {
 				this.world = new World();
@@ -189,6 +166,7 @@ function Game() {
 						event.gesture.preventDefault();
 						if(ready) {
 								if((event.gesture.distance)/event.gesture.deltaTime > 0.3) {
+//										watchID = navigator.accelerometer.watchAcceleration(this.deltaX, null, { frequency: 40 });
 										ready = false;
 										accel = 1.01+weight;
 										decel = 1/accel;
@@ -202,15 +180,32 @@ function Game() {
 		}
 		
 		this.animate = function() {
-				game.world.scene.simulate();
 				deltaY();
-    		bottle.__dirtyPosition = true;
+				checkCoins();
 				requestAnimationFrame( game.animate );
 				game.world.renderer.render( game.world.scene, game.world.camera );
 		}
 		
+		var checkCoins = function() {
+				var shakerX = bottle.position.x;
+				var shakerY = bottle.position.y;
+				var shakerZ = bottle.position.z;
+				if(rising || falling) {
+						for(var i = 0; i < game.world.allCoins.length; i++) {
+								var coin  = game.world.allCoins[i];
+								var distX = abs(coin.position.x - shakerX);
+								var distY = abs(coin.position.y - shakerY);
+								var distZ = abs(coin.position.z - shakerZ);
+								var dist  = Math.sqrt(distX*distX + distY*distY + distZ*distZ);
+								if(dist < 100) {
+										game.world.removeCoin(i);
+								};
+						}
+				}
+		}
+		
 		this.deltaX = function(acceleration) {
-				if((rising || falling) && abs(bottle.position.x) < window.innerWidth*0.1) {
+				if((rising || falling) && abs(bottle.position.x) < window.innerWidth*0.5) {
 						bottle.position.x -= acceleration.x;
 				}
 		}
@@ -353,6 +348,7 @@ function Game() {
 				bouncing 			= false;
 				shareMessage 	= success ? 'I landed a '+score+' point Pepperflip! Think you can beat me?' : 'I missed my Pepperflip! Think you can land it?';
 				var color 		= success ? '#2ecc71' : '#c0392b';
+//				navigator.accelerometer.clearWatch(watchID);
 				updateScore(score+game.world.bonusPoints);
 				$('#title').html('FINAL').css('color', '#3498db');
 				$('#score').css('background', color).html(message).slideDown();
@@ -376,10 +372,8 @@ function Game() {
 		}
 		
 		var abs = function(num) {
-				return (num>>31 ^ num) - num>>31;
+				return (num>>31 ^ num) - (num>>31);
 		}
 }
 
-var game = new Game();
-		game.init();
 //window.addEventListener( 'resize', game.world.onWindowResize, false );

@@ -12,4 +12,7 @@
     <preference name="DisallowOverscroll" value="true" />
     <preference name="BackgroundColor" value="0xff000000"/>
     <access origin="*" />
+    <feature name="Accelerometer">
+        <param name="ios-package" value="CDVAccelerometer" />
+    </feature>
 </widget>

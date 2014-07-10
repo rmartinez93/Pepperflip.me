@@ -1,33 +1,37 @@
 function World() {
 		var world = this;
 		var cloudGeometry, cloudMaterial;
-		var coinGeometry, coinMaterial;
 		this.scene;
 		this.camera;
 		this.renderer;
 		this.bonusPoints = 0;
+		this.allCoins = [];
 	
-		this.init = function() {
-				this.scene 	= new THREE.Scene();
-			
-				this.camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 1000 );
-				this.camera.position.z = 500;
-			
+		'use strict';
+
+		Physijs.scripts.worker 	= 'js/physijs_worker.js';
+		Physijs.scripts.ammo 		= 'ammo.js';
+	
+		this.init = function(numClouds) {
 				this.renderer = new THREE.WebGLRenderer({ antialias: true });
 				this.renderer.setSize( window.innerWidth, window.innerHeight );
 				document.body.appendChild( this.renderer.domElement );
-			
+
+				this.scene = new Physijs.Scene;
+				this.scene.setGravity(new THREE.Vector3( 0, -10, 0 ));
+
+				this.camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 1000 );
+				this.camera.position.z = 500;
+				
 				prepareClouds();
-				prepareCoins();
 		}
 		
 		this.addClouds = function(numClouds) {
 				for(var i = 0; i < numClouds; i++) {
 						var cloud = new THREE.Mesh( cloudGeometry, cloudMaterial );
-						cloud.position.z = -100 * (Math.random()) - 10;
-						cloud.position.y =  300 + (Math.random() * window.innerHeight * 40);
-						cloud.position.x =  Math.random() * (window.innerWidth/2);
-						cloud.position.x *= Math.random() > 0.5 ? -1 : 1;
+						cloud.position.z = -100;
+						cloud.position.y = 300 + (Math.random() * window.innerHeight * 40);
+						cloud.position.x = (Math.random() * window.innerWidth)-(window.innerWidth/2);
 						this.scene.add(cloud);
 				}
 		}
@@ -36,29 +40,43 @@ function World() {
 				var cloudTexture = new THREE.ImageUtils.loadTexture('textures/clouds.png');
 				cloudTexture.anistropy = world.renderer.getMaxAnisotropy();
 				cloudGeometry = new THREE.PlaneGeometry(240, 156);
-				cloudMaterial = new THREE.MeshBasicMaterial( {  map: cloudTexture, transparent: true } );
+				cloudMaterial = new THREE.MeshBasicMaterial( { map: cloudTexture, transparent: true } );
 		}
 	
 		this.addCoins = function(numCoins) {
-				for(var i = 0; i < numCoins; i++) {
-						coin = new THREE.Mesh( coinGeometry, coinMaterial );
-						coin.collisions = 0;
-						coin.position.y = 500;
-						this.scene.add(coin);
+				for(coin in this.allCoins) {
+						this.scene.remove(this.allCoins[coin]);
 				}
-		}
-	
-		var prepareCoins = function() {
-				coinGeometry = new THREE.CubeGeometry( 100, 100, 100 );
-				coinMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
+				this.allCoins = [];
+				
+				this.numCoins = numCoins;
+				for(var i = 0; i < numCoins; i++) {
+						this.allCoins.push(new Physijs.BoxMesh( 
+								new THREE.CubeGeometry( 50, 50, 10 ), 
+								Physijs.createMaterial(new THREE.MeshBasicMaterial( { color: 0xff0000 } ), 0, 0), 
+								0 
+						));
+						this.allCoins[i].collisions = 0;
+						this.allCoins[i].position.y = 300 + (Math.random() * window.innerHeight * 40);
+						this.allCoins[i].position.x = (Math.random() * window.innerWidth)-(window.innerWidth/2);
+						this.allCoins[i].addEventListener( 'collision', function() { 
+								world.bonusPoints += 100;
+								world.scene.remove(this);
+						} );
+						this.scene.add(this.allCoins[i]);
+				}
 		}
 	
 		this.addTable = function() {
 				var tableGeometry = new THREE.CubeGeometry( 800, 100, 500 );
 				var tableTexture = THREE.ImageUtils.loadTexture( 'textures/wood.jpg' );
 				tableTexture.anisotropy = this.renderer.getMaxAnisotropy();
-				var tableMaterial = new THREE.MeshBasicMaterial( { map: tableTexture } );
-				var table = new THREE.Mesh( tableGeometry, tableMaterial );
+				var tableMaterial = Physijs.createMaterial(
+					new THREE.MeshBasicMaterial( { map: tableTexture } ),
+					1,
+					0
+				);
+				var table = new Physijs.BoxMesh(tableGeometry, tableMaterial, 0);
 				table.position.y = -235;
 				this.scene.add(table);
 		}
@@ -79,9 +97,12 @@ function Shaker(scale) {
 		this.scale = scale;
 		this.bottle;
 		this.weight;
-		this.height;
-		this.width;
 	
+		'use strict';
+
+		Physijs.scripts.worker 	= 'js/physijs_worker.js';
+		Physijs.scripts.ammo 		= 'ammo.js';
+		
 		this.init = function(renderer) {
 				//create pepper shaker material
 				var pepperTexture = THREE.ImageUtils.loadTexture( 'textures/pepper.jpg' );
@@ -94,14 +115,22 @@ function Shaker(scale) {
 				var topCylinder = new THREE.CylinderGeometry(70*scale, 85*scale, 60*scale, 50, 50, false);
 				var topTexture 	= THREE.ImageUtils.loadTexture( 'textures/chrome.jpg' );
 				topTexture.anisotropy = renderer.getMaxAnisotropy();
-				var topMaterial = new THREE.MeshBasicMaterial( { map: topTexture } );
+				var topMaterial = Physijs.createMaterial(
+					new THREE.MeshBasicMaterial( { map: topTexture } ),
+					0,
+					0 
+				);
 				var pepperTop 	= new THREE.Mesh( topCylinder, topMaterial );
 				pepperTop.position.y = 150*scale;
 
 				//create glass material
 				var glassCylinder = new THREE.CylinderGeometry(85*scale, 125*scale, 250*scale, 50, 50, false);
-				var glassMaterial = new THREE.MeshBasicMaterial( { transparent: true, opacity: 0.3 } );
-				this.bottle = new THREE.Mesh( glassCylinder, glassMaterial, 20 );
+				var glassMaterial = Physijs.createMaterial(
+					new THREE.MeshBasicMaterial( { transparent: true, opacity: 0.3 } ),
+					0,
+					0
+				);
+				this.bottle = new Physijs.CylinderMesh( glassCylinder, glassMaterial, 20 );
 				this.bottle.add(pepperTop);
 		}
 		
@@ -147,7 +176,7 @@ function Game() {
 				this.world.init();
 				this.world.addTable();
 				this.world.addClouds(100);
-				//this.world.addCoins(1);
+				this.world.addCoins(20);
 				this.shaker = new Shaker(0.75);
 				this.shaker.init(this.world.renderer);
 				this.shaker.refill();
@@ -167,19 +196,20 @@ function Game() {
 										if(speed > speedCap) speed = speedCap;
 										$('header').slideUp();
 										rising = true;
-								}
-								else $('header').html('Pull faster!');
+								} else $('header').html('Pull faster!');
 						}
 				});
 		}
 		
 		this.animate = function() {
+				game.world.scene.simulate();
 				deltaY();
+    		bottle.__dirtyPosition = true;
 				requestAnimationFrame( game.animate );
 				game.world.renderer.render( game.world.scene, game.world.camera );
 		}
 		
-		var deltaX = function(acceleration) {
+		this.deltaX = function(acceleration) {
 				if((rising || falling) && abs(bottle.position.x) < window.innerWidth*0.1) {
 						bottle.position.x -= acceleration.x;
 				}
@@ -307,10 +337,13 @@ function Game() {
 				$('button').addClass('hideImportant');
 				$('#score').hide(function(){
 						$('#title').html('SCORE').css('color', '#fff');
-						updateScore(0);
 						game.shaker.refill();
+						game.world.addCoins(20);
+						game.world.bonusPoints = 0;
+						updateScore(0);
 						bounceMode = speed = 0;
 						bottle.rotation.x = 0;
+						bottle.position.x = 0;
 						bottle.position.y = -90;
 						ready = true;
 				});
@@ -320,7 +353,8 @@ function Game() {
 				bouncing 			= false;
 				shareMessage 	= success ? 'I landed a '+score+' point Pepperflip! Think you can beat me?' : 'I missed my Pepperflip! Think you can land it?';
 				var color 		= success ? '#2ecc71' : '#c0392b';
-				updateScore(game.world.bonusPoints, true);
+				updateScore(score+game.world.bonusPoints);
+				$('#title').html('FINAL').css('color', '#3498db');
 				$('#score').css('background', color).html(message).slideDown();
 				$('button').removeClass('hideImportant');
 				localStorage.lastPepperflip = new Date().getDay();
@@ -337,21 +371,8 @@ function Game() {
 		}
 		
 		var updateScore = function(newScore, special) {
-				if(special) {
-						$('#title').html('BONUS').css('color', '#F00');
-						$('#num').html('+'+newScore);
-						setTimeout(function(){
-								if(!ready) {
-										score = newScore + score;
-										$('#title').html('FINAL').css('color', '#fff');
-										$('#num').html(score);
-								}
-						}, 3200);
-				}
-				else {
-					score = newScore >= score ? newScore : 0;
-					$('#num').html(score);
-				}
+				score = newScore >= score ? newScore : 0;
+				$('#num').html(score);
 		}
 		
 		var abs = function(num) {

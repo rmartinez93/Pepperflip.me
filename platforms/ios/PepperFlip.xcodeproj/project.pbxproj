@@ -42,8 +42,8 @@
 		7E7966E71810823500FA85AD /* icon-small@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7E7966DD1810823500FA85AD /* icon-small@2x.png */; };
 		D4A0D8761607E02300AEF8BB /* Default-568h@2x~iphone.png in Resources */ = {isa = PBXBuildFile; fileRef = D4A0D8751607E02300AEF8BB /* Default-568h@2x~iphone.png */; };
 		D5D64FF305B8430A9FFC33BC /* SocialSharing.m in Sources */ = {isa = PBXBuildFile; fileRef = 5067751083E44B3A96517D86 /* SocialSharing.m */; };
-		8207AE127B48442E9F2FB7A8 /* CDVAccelerometer.m in Sources */ = {isa = PBXBuildFile; fileRef = 46B1DF0866214DFCBADB504E /* CDVAccelerometer.m */; };
-		5DCF217E50D340A29FB942D8 /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 251A8ECB56FA40A09BB8FEFD /* CoreMotion.framework */; };
+		AE6ED6439156460683376CDE /* CDVAccelerometer.m in Sources */ = {isa = PBXBuildFile; fileRef = 224535B2AC2B4BB4A6B6F6B3 /* CDVAccelerometer.m */; };
+		06D73935EF66408FAB391AAF /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B43B35D1CCFC409D86DE67FD /* CoreMotion.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -114,9 +114,9 @@
 		EB87FDF31871DA8E0020F90C /* www */ = {isa = PBXFileReference; lastKnownFileType = folder; name = www; path = ../../www; sourceTree = "<group>"; };
 		EB87FDF41871DAF40020F90C /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = config.xml; path = ../../config.xml; sourceTree = "<group>"; };
 		F840E1F0165FE0F500CFE078 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = config.xml; path = PepperFlip/config.xml; sourceTree = "<group>"; };
-		46B1DF0866214DFCBADB504E /* CDVAccelerometer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = "CDVAccelerometer.m"; path = "org.apache.cordova.device-motion/CDVAccelerometer.m"; sourceTree = "<group>"; fileEncoding = 4; };
-		3C0FDF9D4BF34434BFFD93BF /* CDVAccelerometer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "CDVAccelerometer.h"; path = "org.apache.cordova.device-motion/CDVAccelerometer.h"; sourceTree = "<group>"; fileEncoding = 4; };
-		251A8ECB56FA40A09BB8FEFD /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = "CoreMotion.framework"; path = "System/Library/Frameworks/CoreMotion.framework"; sourceTree = SDKROOT; fileEncoding = 4; };
+		224535B2AC2B4BB4A6B6F6B3 /* CDVAccelerometer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = "CDVAccelerometer.m"; path = "org.apache.cordova.device-motion/CDVAccelerometer.m"; sourceTree = "<group>"; fileEncoding = 4; };
+		E72F2F6FA97F44C5B3243AC9 /* CDVAccelerometer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "CDVAccelerometer.h"; path = "org.apache.cordova.device-motion/CDVAccelerometer.h"; sourceTree = "<group>"; fileEncoding = 4; };
+		B43B35D1CCFC409D86DE67FD /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = "CoreMotion.framework"; path = "System/Library/Frameworks/CoreMotion.framework"; sourceTree = SDKROOT; fileEncoding = 4; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -131,7 +131,7 @@
 				5AEE5B35173C68D80009041E /* CoreLocation.framework in Frameworks */,
 				6633B5C2897A4A8EA21E5E2D /* Social.framework in Frameworks */,
 				5994C67DC7504099947F170A /* MessageUI.framework in Frameworks */,
-				5DCF217E50D340A29FB942D8 /* CoreMotion.framework in Frameworks */,
+				06D73935EF66408FAB391AAF /* CoreMotion.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -227,7 +227,7 @@
 				305D5FD0115AB8F900A74A75 /* MobileCoreServices.framework */,
 				2EADF1E324D1402CA7F2B49C /* Social.framework */,
 				2786BE1F48CA4515927C65B6 /* MessageUI.framework */,
-				251A8ECB56FA40A09BB8FEFD /* CoreMotion.framework */,
+				B43B35D1CCFC409D86DE67FD /* CoreMotion.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -247,8 +247,8 @@
 				D8EF3C91BE154B6AB262F0DB /* CDVLogger.h */,
 				5067751083E44B3A96517D86 /* SocialSharing.m */,
 				611557770D7141A9BE033685 /* SocialSharing.h */,
-				46B1DF0866214DFCBADB504E /* CDVAccelerometer.m */,
-				3C0FDF9D4BF34434BFFD93BF /* CDVAccelerometer.h */,
+				224535B2AC2B4BB4A6B6F6B3 /* CDVAccelerometer.m */,
+				E72F2F6FA97F44C5B3243AC9 /* CDVAccelerometer.h */,
 			);
 			name = Plugins;
 			path = PepperFlip/Plugins;
@@ -450,7 +450,7 @@
 				302D95F114D2391D003F00A1 /* MainViewController.m in Sources */,
 				175303B4B0674704915902B9 /* CDVLogger.m in Sources */,
 				D5D64FF305B8430A9FFC33BC /* SocialSharing.m in Sources */,
-				8207AE127B48442E9F2FB7A8 /* CDVAccelerometer.m in Sources */,
+				AE6ED6439156460683376CDE /* CDVAccelerometer.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
