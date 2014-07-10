@@ -199,10 +199,8 @@ function Game() {
 										var distZ = abs(coin.position.z - shakerZ);
 										var dist  = Math.sqrt(distX*distX + distY*distY + distZ*distZ);
 										if(dist < 100) {
-												pointSound.pause();
 												game.world.removeCoin(i);
 												game.world.allCoins[i] = null;
-												pointSound.play();
 										};
 								}
 						}
